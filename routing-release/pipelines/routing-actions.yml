@@ -1,0 +1,258 @@
+#@ load("@ytt:data", "data")
+#@ load("ytt-helpers.star", "helpers")
+
+#! Define-Groups
+groups:
+- name: release
+  jobs:
+  - template-tests
+  - unit-and-integration-tests
+  - lint-repo
+
+
+
+
+
+
+
+- name: version
+  jobs:
+  - major-bump
+  - minor-bump
+  - patch-bump
+
+
+
+resource_types:
+- name: slack-notification
+  type: docker-image
+  source:
+    repository: cfcommunity/slack-notification-resource
+    tag: latest
+
+resources:
+#! REPOS
+
+
+- name: golang-release-latest
+  type: git
+  icon: tag-outline
+  source:
+    tag_filter: v*
+    uri: https://github.com/bosh-packages/golang-release.git
+
+- name: repo
+  type: git
+  icon: source-branch
+  source:
+    branch: github-action
+    uri: https://github.com/kart2bc/routing-release.git
+    private_key: ((github-appruntimeplatform-bot/private-key))
+    ignore_paths:
+    - .github/
+    - .gitignore
+    - .final_builds/
+    - CODEOWNERS
+    - LICENSE
+    - NOTICE
+    - README.md
+    - docs/
+    - releases/
+
+#! repo-synced is a write-only resource to prevent readme
+#! changes from triggering pipeline runs. See the description of "ignore_path"
+#! here for more info: https://github.com/concourse/git-resource
+
+
+
+
+
+- name: ci
+  type: git
+  icon: source-branch
+  source:
+    branch: main
+    uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
+
+
+
+
+
+
+#@ for repo in data.values.internal_repos:
+- name: #@ "{}-repo".format(repo.name)
+  type: git
+  icon: source-branch
+  source:
+    branch: main
+    uri: #@ "git@github.com:cloudfoundry/{}.git".format(repo.name)
+    private_key: ((github-appruntimeplatform-bot/private-key))
+#@ end
+
+#! CF Deployment
+
+
+
+
+
+
+#! TIMERS
+
+
+
+#! Deployment Environment pool
+
+
+
+
+- name: version
+  type: semver
+  icon: counter
+  source:
+    driver: gcs
+    bucket: ci-release-versions
+    key: routing-release/version
+    json_key: ((gcp-wg-arp-oss-service-account/config-json))
+
+
+
+
+- name: image
+  type: registry-image
+  icon: docker
+  source:                                        
+    repository: us-central1-docker.pkg.dev/cf-diego-pivotal/tas-runtime-dockerhub-mirror/cloudfoundry/tas-runtime-build
+    username: _json_key
+    password: ((gcp-wg-arp-service-account/config-json))
+    tag: 'latest'
+
+
+
+jobs:
+
+
+
+- name: template-tests
+  serial: true
+  plan:
+  - in_parallel:
+    - get: ci
+    - get: repo
+      trigger: true
+    - get: image
+  - task: template-tests
+    image: image
+    file: ci/shared/tasks/run-tests-templates/linux.yml
+    timeout: 30m
+
+- name: unit-and-integration-tests
+  serial: true
+  plan:
+  - in_parallel:
+    - get: ci
+    - get: repo
+    - get: gorouter-repo
+      trigger: true
+    - get: image
+    - get: package-release
+      resource: golang-release-latest
+  - in_parallel:
+    - do:
+      - task: determine-image-tag-test
+        image: image
+        file: ci/shared/tasks/determine-image-tag/linux.yml
+      - load_var: image_tag
+        file: determined-image-tag/tag
+  - in_parallel:
+    - do:
+    - task: gorouter
+      file: ci/shared/tasks/run-bin-test/linux.yml
+      attempts: 3
+      vars:
+        image_repository: cloudfoundry/tas-runtime-mysql-5.7
+        image_password: ((gcp-wg-arp-service-account/config-json))
+        image_tag: ((.:image_tag))
+      params:
+        DIR: src/code.cloudfoundry.org/gorouter
+        DB: mysql
+        DEFAULT_PARAMS: "ci/routing-release/default-params/run-bin-test/linux.yml"
+#@ for db in data.values.db_flavors:
+    - do:
+      - task: #@ "determine-image-tag-{}".format(db.image)
+        image: image
+        file: ci/shared/tasks/determine-image-tag/linux.yml
+        output_mapping:
+          determined-image-tag: #@ "determined-image-tag-{}".format(db.image)
+        params:
+          IMAGE: #@ "cloudfoundry/tas-runtime-{}".format(db.image)
+      - load_var: #@ "image_tag_{}".format(db.image.replace("-", "_").replace(".", "_"))
+        file: #@ "determined-image-tag-{}/tag".format(db.image)
+#@ end
+  - task: build-binaries
+    file: ci/shared/tasks/build-binaries/linux.yml
+    vars:
+      image_repository: cloudfoundry/tas-runtime-mysql-5.7 #! build with older version of ubuntu because of GLIB_C bump so that binaries could still be executed in mysql-5.7
+      image_password: ((gcp-wg-arp-service-account/config-json))
+      image_tag: ((.:image_tag_mysql_5_7))
+    params:
+      DEFAULT_PARAMS: "ci/routing-release/default-params/build-binaries/linux.yml"
+  
+#@ for package in helpers.packages_with_configure_db(data.values.internal_repos):
+  - in_parallel:
+#@ for db in data.values.db_flavors:
+    - task: #@ "{}-{}".format(package.name,db.image)
+      file: ci/shared/tasks/run-bin-test/linux.yml
+      attempts: 3
+      vars:
+        image_repository: #@ "cloudfoundry/tas-runtime-{}".format(db.image)
+        image_password: ((gcp-wg-arp-service-account/config-json))
+        image_tag: #@ "((.:image_tag_{}))".format(db.image.replace("-", "_").replace(".", "_"))
+      params:
+        DIR: #@ "src/code.cloudfoundry.org/{}".format(package.name)
+        DB: #@ db.value
+        DEFAULT_PARAMS: "ci/routing-release/default-params/run-bin-test/linux.yml"
+#@ end
+#@ end
+
+
+
+- name: lint-repo
+  serial: true
+  plan:
+  - in_parallel:
+    - get: ci
+    - get: repo
+      trigger: true
+    - get: image
+  - task: lint-repo
+    file: ci/shared/tasks/lint-repo/linux.yml
+    image: image
+
+
+
+
+#! versioning
+- name: patch-bump
+  serial_groups: [version]
+  plan:
+  - get: version
+    params: {bump: patch}
+  - put: version
+    params: {file: version/number}
+
+- name: minor-bump
+  serial_groups: [version]
+  plan:
+  - get: version
+    params: {bump: minor}
+  - put: version
+    params: {file: version/number}
+
+- name: major-bump
+  serial_groups: [version]
+  plan:
+  - get: version
+    params: {bump: major}
+  - put: version
+    params: {file: version/number}
+
