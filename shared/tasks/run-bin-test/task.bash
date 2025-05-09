@@ -1,9 +1,9 @@
 #!/bin/bash
 
-set -eEu
+set -eExu
 set -o pipefail
 
-THIS_FILE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+THIS_FILE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 export TASK_NAME="$(basename $THIS_FILE_DIR)"
 source "$THIS_FILE_DIR/../../../shared/helpers/helpers.bash"
 source "$THIS_FILE_DIR/../../../shared/helpers/git-helpers.bash"
@@ -29,18 +29,18 @@ function run_test_cmd() {
     fi
 }
 
-function run(){
+function run() {
     local task_tmp_dir="${1:?provide temp dir for task}"
     shift 1
 
     git_configure_safe_directory
+    echo "test1"
+    echo "$FUNCTIONS"
     expand_functions
-
 
     if [[ -d "built-binaries" ]]; then
         IFS=$'\n'
-        for entry in $(find built-binaries -name "*.bash");
-        do
+        for entry in $(find built-binaries -name "*.bash"); do
             echo "Sourcing: $entry"
             debug "$(cat $entry)"
             source "${entry}"
@@ -48,11 +48,9 @@ function run(){
         unset IFS
     fi
 
-
     local env_file="$(mktemp -p ${task_tmp_dir} -t 'XXXXX-env.bash')"
     expand_envs "${env_file}"
     . "${env_file}"
-
 
     expand_verifications
 
@@ -61,7 +59,8 @@ function run(){
     fi
 
     path=${PATH}
-    pushd "repo/$DIR"  > /dev/null
+    echo "hello"
+    pushd "$DIR" >/dev/null
     if [[ -f ./bin/test.bash ]]; then
         debug "Running ./bin/test.bash for repo/$DIR"
         run_test_cmd ./bin/test.bash $(expand_flags) "$@"
@@ -69,7 +68,7 @@ function run(){
         debug "Missing ./bin/test.bash for repo/$DIR. Running ginkgo by default"
         run_test_cmd "go run github.com/onsi/ginkgo/v2/ginkgo $(expand_flags) $@"
     fi
-    popd  > /dev/null
+    popd >/dev/null
 }
 
 function cleanup() {
