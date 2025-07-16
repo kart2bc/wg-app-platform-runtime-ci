@@ -219,9 +219,7 @@ resources:
     paths: [go-version.json]
 
 
-  type: time
-  source:
-    interval: '1m'
+
 
 - name: slack-ci-channel
   type: slack-notification
