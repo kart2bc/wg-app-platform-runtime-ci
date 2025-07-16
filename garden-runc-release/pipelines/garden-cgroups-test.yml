@@ -102,18 +102,7 @@ resources:
     uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
 
 
-  type: git
-  icon: source-branch
-  source:
-    branch: main
-    uri: https://github.com/cloudfoundry/cf-deployment-concourse-tasks.git
 
-  type: git
-  icon: source-branch
-  source:
-    uri: git@github.com:cloudfoundry/grootfs.git
-    branch: main
-    private_key: ((github-appruntimeplatform-bot/private-key))
 
 
   type: git
