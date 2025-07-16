@@ -4,22 +4,9 @@
 
 #! <MUST> repo/component/package to test in your repo/release
 internal_repos:
-- name: greenskeeper 
-  privileged: true
-  same_repo: true
-- name: thresholder
-  privileged: true
-  same_repo: true
-- name: dontpanic
-  privileged: true
-- name: garden
 - name: guardian
   privileged: true
-  on_windows: true
-- name: idmapper
-  privileged: true
-- name: grootfs
-  privileged: true
+  on_windows: false
 
 #! <OPTIONAL> set to a list of opsfile if pipeline needs to update cf-deployment
 opsfiles:
