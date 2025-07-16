@@ -105,26 +105,11 @@ resources:
 
 
 
-  type: git
-  icon: source-branch
-  source:
-    branch: main
-    uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
-    paths: [go-version.json]
 
 
 
 
 
-  type: git
-  icon: source-branch
-  source:
-    branch: main
-    uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
-    paths: 
-      - shared/*.md
-      - garden-runc-release/*.md
-      - garden-runc-release/readme/*.md
 
 #@ for repo in helpers.packages_with_a_git_repo(data.values.internal_repos):
 - name: #@ "{}-repo".format(repo.name)
