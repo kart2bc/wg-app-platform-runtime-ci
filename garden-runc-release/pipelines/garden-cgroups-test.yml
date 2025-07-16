@@ -1,0 +1,1166 @@
+#@ load("@ytt:data", "data")
+#@ load("ytt-helpers.star", "helpers")
+
+#! Define-Groups
+groups:
+- name: release
+  jobs:
+  - template-tests
+  - unit-and-integration-tests
+  - lint-repo
+
+
+
+
+
+
+#! Define-ResourceGroups
+resource_types:
+- name: gcs
+  type: registry-image
+  source:
+    repository: us-central1-docker.pkg.dev/app-runtime-platform-wg/dockerhub-mirror/frodenas/gcs-resource
+    username: _json_key
+    password: ((gcp-arp-artifact-registry-service-account-token))
+
+- name: command-runner
+  type: docker-image
+  source:
+    repository: us-central1-docker.pkg.dev/app-runtime-platform-wg/dockerhub-mirror/cloudfoundrydevelopers/command-runner-resource
+    username: _json_key
+    password: ((gcp-arp-artifact-registry-service-account-token))
+    tag: latest
+
+- name: slack-notification
+  type: docker-image
+  source:
+    repository: us-central1-docker.pkg.dev/app-runtime-platform-wg/dockerhub-mirror/cfcommunity/slack-notification-resource
+    username: _json_key
+    password: ((gcp-arp-artifact-registry-service-account-token))
+    tag: latest
+
+- name: fork-pool
+  type: registry-image
+  source:
+    repository: ebroberson/pool-resource
+
+#! Define-Resources
+resources:
+- name: golang-release-latest
+  type: git
+  icon: tag-outline
+  source:
+    tag_filter: v*
+    uri: https://github.com/bosh-packages/golang-release.git
+
+- name: repo
+  type: git
+  icon: source-branch
+  source:
+    branch: develop
+    uri: git@github.com:cloudfoundry/garden-runc-release.git
+    private_key: ((github-appruntimeplatform-bot/private-key))
+    ignore_paths:
+    - .github/
+    - .gitignore
+    - CODEOWNERS
+    - LICENSE
+    - NOTICE
+    - README.md
+    - docs/
+
+#! repo-synced is a write-only resource to prevent readme
+#! changes from triggering pipeline runs. See the description of "ignore_path"
+#! here for more info: https://github.com/concourse/git-resource
+- name: repo-synced
+  type: git
+  icon: git
+  source:
+    branch: develop
+    uri: git@github.com:cloudfoundry/garden-runc-release.git
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+- name: release-branch
+  type: git
+  icon: source-branch
+  source:
+    uri: git@github.com:cloudfoundry/garden-runc-release.git
+    branch: release
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+- name: develop-branch-mergeback
+  type: git
+  icon: source-branch
+  source:
+    uri: git@github.com:cloudfoundry/garden-runc-release.git
+    branch: develop
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+- name: ci
+  type: git
+  icon: source-branch
+  source:
+    branch: main
+    uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
+
+- name: cf-deployment
+  type: git
+  icon: source-branch
+  source:
+    branch: main
+    uri: https://github.com/cloudfoundry/cf-deployment.git
+
+- name: garden-ci-artifacts-release
+  type: git
+  icon: source-branch
+  source:
+    branch: develop
+    uri: https://github.com/cloudfoundry/garden-ci-artifacts-release.git
+
+- name: winc-release
+  type: git
+  icon: source-branch
+  source:
+    branch: release
+    uri: https://github.com/cloudfoundry/winc-release.git
+
+- name: windows-utilities-release
+  type: git
+  icon: source-branch
+  source:
+    branch: master
+    uri: https://github.com/cloudfoundry/windows-utilities-release.git
+
+- name: cf-deployment-concourse-tasks
+  type: git
+  icon: source-branch
+  source:
+    branch: main
+    uri: https://github.com/cloudfoundry/cf-deployment-concourse-tasks.git
+
+- name: cf-acceptance-tests
+  type: git
+  icon: source-branch
+  source:
+    branch: release-candidate
+    uri: https://github.com/cloudfoundry/cf-acceptance-tests
+
+- name: updated-go-mod-garden
+  type: git
+  icon: source-branch
+  source:
+    uri: git@github.com:cloudfoundry/garden.git
+    branch: main
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+
+- name: updated-go-mod-guardian
+  type: git
+  icon: source-branch
+  source:
+    uri: git@github.com:cloudfoundry/guardian.git
+    branch: cgroupsv2-fix
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+- name: updated-go-mod-idmapper
+  type: git
+  icon: source-branch
+  source:
+    uri: git@github.com:cloudfoundry/idmapper.git
+    branch: main
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+- name: updated-go-mod-grootfs
+  type: git
+  icon: source-branch
+  source:
+    uri: git@github.com:cloudfoundry/grootfs.git
+    branch: main
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+- name: updated-go-mod-groot
+  type: git
+  icon: source-branch
+  source:
+    uri: git@github.com:cloudfoundry/groot.git
+    branch: main
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+- name: updated-go-mod-dontpanic
+  type: git
+  icon: source-branch
+  source:
+    uri: git@github.com:cloudfoundry/dontpanic.git
+    branch: main
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+- name: updated-go-mod-garden-integration-tests
+  type: git
+  icon: source-branch
+  source:
+    uri: git@github.com:cloudfoundry/garden-integration-tests.git
+    branch: main
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+- name: updated-go-mod-garden-performance-acceptance-tests
+  type: git
+  icon: source-branch
+  source:
+    uri: git@github.com:cloudfoundry/garden-performance-acceptance-tests.git
+    branch: main
+    private_key: ((github-appruntimeplatform-bot/private-key))
+
+- name: go-version
+  type: git
+  icon: source-branch
+  source:
+    branch: main
+    uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
+    paths: [go-version.json]
+
+
+  type: time
+  source:
+    interval: '1m'
+
+- name: slack-ci-channel
+  type: slack-notification
+  source:
+    url: ((slack-ci-channel/webhook))
+
+- name: env
+  type: git
+  icon: sheep
+  source:
+    branch: main
+    uri: git@github.com:cloudfoundry/app-runtime-platform-envs
+    private_key: ((github-appruntimeplatform-bot/private-key))
+    paths:
+      - bbl-garden-env
+
+- name: github-release
+  type: github-release
+  icon: github
+  source:
+    access_token: ((github-appruntimeplatform-bot/access-token))
+    repository: garden-runc-release
+    owner: cloudfoundry
+
+- name: draft-github-release
+  type: github-release
+  icon: github
+  source:
+    access_token: ((github-appruntimeplatform-bot/access-token))
+    drafts: true
+    repository: garden-runc-release
+    owner: cloudfoundry
+
+- name: shared-templates
+  type: git
+  icon: source-branch
+  source:
+    branch: main
+    uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
+    paths:
+      - shared/github
+      - garden-runc-release/github
+
+- name: readme
+  type: git
+  icon: source-branch
+  source:
+    branch: main
+    uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
+    paths: 
+      - shared/*.md
+      - garden-runc-release/*.md
+      - garden-runc-release/readme/*.md
+
+#@ for repo in helpers.packages_with_a_git_repo(data.values.internal_repos):
+- name: #@ "{}-repo".format(repo.name)
+  type: git
+  icon: source-branch
+  source:
+    branch: main
+    uri: #@ "git@github.com:cloudfoundry/{}.git".format(repo.name)
+    private_key: ((github-appruntimeplatform-bot/private-key))
+#@ end
+
+- name: version
+  type: semver
+  icon: counter
+  source:
+    driver: gcs
+    bucket: ci-release-versions
+    key: garden-runc-release/version
+    json_key: ((gcp-wg-arp-oss-service-account/config-json))
+
+- name: windows-worker-lock
+  type: pool
+  icon: cloud-lock
+  source:
+    branch: main
+    pool: windows-worker-lock
+    private_key: ((github-appruntimeplatform-bot/private-key))
+    uri: git@github.com:cloudfoundry/runtime-ci-pools.git
+
+- name: garden-runc-release-env-lock
+  type: fork-pool
+  icon: cloud-lock
+  source:
+    branch: main
+    pool: garden-runc-release-env-lock
+    private_key: ((github-appruntimeplatform-bot/private-key))
+    uri: git@github.com:cloudfoundry/runtime-ci-pools.git
+    paths: garden-runc-release-env-lock
+
+- name: image
+  type: registry-image
+  icon: docker
+  source:
+    repository: us-central1-docker.pkg.dev/app-runtime-platform-wg/dockerhub-mirror/cloudfoundry/tas-runtime-build
+    username: _json_key
+    password: ((gcp-arp-artifact-registry-service-account-token))
+    tag: latest
+
+- name: garden-runc-release-rootfs
+  type: registry-image
+  icon: docker
+  source:
+    repository: us-central1-docker.pkg.dev/app-runtime-platform-wg/dockerhub-mirror/cloudfoundry/garden-rootfs
+    username: _json_key
+    password: ((gcp-arp-artifact-registry-service-account-token))
+    tag: latest
+
+- name: garden-runc-release-fuse-rootfs
+  type: registry-image
+  icon: docker
+  source:
+    repository: us-central1-docker.pkg.dev/app-runtime-platform-wg/dockerhub-mirror/cloudfoundry/garden-fuse
+    username: _json_key
+    password: ((gcp-arp-artifact-registry-service-account-token))
+    tag: latest
+
+- name: artifacts-bucket-gdn
+  type: gcs
+  icon: bitbucket
+  source:
+    bucket: gdn-linux-release
+    json_key: ((gcp-wg-arp-oss-service-account/config-json))
+    versioned_file: gdn-linux-amd64
+
+- name: artifacts-bucket-gdn-arm64
+  type: gcs
+  icon: bitbucket
+  source:
+    versioned_file: gdn-linux-arm64
+    bucket: gdn-linux-release
+    json_key: ((gcp-wg-arp-oss-service-account/config-json))
+
+- name: autoconf
+  type: git
+  icon: tag-outline
+  source:
+    branch: master
+    uri: https://github.com/autotools-mirror/autoconf
+    tag_filter: v*
+
+- name: automake
+  type: git
+  icon: tag-outline
+  source:
+    branch: master
+    uri: https://github.com/autotools-mirror/automake
+    tag_filter: v*
+
+- name: busybox
+  type: git
+  icon: tag-outline
+  source:
+    branch: 1_36_stable
+    uri: https://git.busybox.net/busybox
+
+- name: gperf
+  type: git
+  icon: tag-outline
+  source:
+    branch: master
+    uri: https://github.com/jwinarske/gperf
+    tag_filter: v*
+
+- name: iptables
+  type: git
+  icon: tag-outline
+  source:
+    branch: master
+    uri: https://git.netfilter.org/iptables
+    tag_filter: v*
+
+- name: libmnl
+  type: git
+  icon: tag-outline
+  source:
+    branch: master
+    uri: https://git.netfilter.org/libmnl
+    tag_filter: libmnl*
+
+- name: libnftnl
+  type: git
+  icon: tag-outline
+  source:
+    branch: master
+    uri: https://git.netfilter.org/libnftnl
+    tag_filter: libnftnl-*
+
+- name: libseccomp
+  type: github-release
+  icon: github
+  source:
+    access_token: ((github-appruntimeplatform-bot/access-token))
+    owner: seccomp
+    repository: libseccomp
+
+- name: libtool
+  type: git
+  icon: tag-outline
+  source:
+    branch: debian/latest
+    uri: https://salsa.debian.org/mckinstry/libtool.git
+    tag_filter: debian/*
+
+- name: musl
+  type: git
+  icon: tag-outline
+  source:
+    branch: master
+    uri: https://git.musl-libc.org/git/musl
+    tag_filter: v*
+
+- name: pkg-config
+  type: git
+  icon: tag-outline
+  source:
+    branch: master
+    uri: https://gitlab.freedesktop.org/pkg-config/pkg-config.git
+    tag_filter: pkg-config-*
+
+- name: tar
+  type: git
+  icon: tag-outline
+  source:
+    branch: master
+    uri: https://git.savannah.gnu.org/git/tar.git
+    tag_filter: v*
+
+- name: tini
+  type: github-release
+  icon: github
+  source:
+    access_token: ((github-appruntimeplatform-bot/access-token))
+    owner: krallin
+    repository: tini
+
+- name: util-linux
+  type: git
+  icon: tag-outline
+  source:
+    branch: stable/v2.39
+    uri: https://github.com/util-linux/util-linux.git
+    tag_regex: ^v([0-9]|[1-9][0-9]*)\.([0-9]|[1-9][0-9]*)\.([0-9]|[1-9][0-9]*)$
+
+- name: zlib
+  type: github-release
+  icon: github
+  source:
+    access_token: ((github-appruntimeplatform-bot/access-token))
+    owner: madler
+    repository: zlib
+
+#! Define-Jobs
+
+
+- name: bump-dependencies-go-mod
+  on_failure: &ci-notification
+    put: slack-ci-channel
+    params:
+      text: ":concourse-failed: $BUILD_PIPELINE_NAME failed on <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|$BUILD_JOB_NAME>."
+  plan:
+  - in_parallel:
+    - get: ci
+    - get: repo
+    - get: updated-go-mod-garden
+    - get: updated-go-mod-idmapper
+    - get: updated-go-mod-garden-performance-acceptance-tests
+    - get: updated-go-mod-grootfs
+    - get: updated-go-mod-groot
+    - get: updated-go-mod-guardian
+    - get: updated-go-mod-garden-integration-tests
+    - get: updated-go-mod-dontpanic
+    - get: image
+    - get: weekly
+      trigger: true
+  - do:
+    - task: garden-bump-dependencies-go-mod
+      file: ci/shared/tasks/bump-dependencies-go-mod/linux.yml
+      image: image
+      input_mapping:
+        repo: updated-go-mod-garden
+      params:
+        GO_MODS: go.mod
+    - put: updated-go-mod-garden
+      params:
+        rebase: true
+        repository: bumped-repo
+  - do:
+    - task: garden-performance-acceptance-tests-bump-dependencies-go-mod
+      file: ci/shared/tasks/bump-dependencies-go-mod/linux.yml
+      image: image
+      input_mapping:
+        repo: updated-go-mod-garden-performance-acceptance-tests
+        dep-local-repo-replace-01: updated-go-mod-garden
+      params:
+        GO_MODS: go.mod
+        REPLACE_DIRECTIVES: |
+          dep-local-repo-replace-01:garden
+    - put: updated-go-mod-garden-performance-acceptance-tests
+      params:
+        rebase: true
+        repository: bumped-repo
+  - do:
+    - task: idmapper-bump-dependencies-go-mod
+      file: ci/shared/tasks/bump-dependencies-go-mod/linux.yml
+      image: image
+      input_mapping:
+        repo: updated-go-mod-idmapper
+      params:
+        GO_MODS: go.mod
+    - put: updated-go-mod-idmapper
+      params:
+        rebase: true
+        repository: bumped-repo
+  - do:
+    - task: dontpanic-bump-dependencies-go-mod
+      file: ci/shared/tasks/bump-dependencies-go-mod/linux.yml
+      image: image
+      input_mapping:
+        repo: updated-go-mod-dontpanic
+      params:
+        GO_MODS: go.mod
+    - put: updated-go-mod-dontpanic
+      params:
+        rebase: true
+        repository: bumped-repo
+  - do:
+    - task: grootfs-bump-dependencies-go-mod
+      file: ci/shared/tasks/bump-dependencies-go-mod/linux.yml
+      image: image
+      input_mapping:
+        repo: updated-go-mod-grootfs
+        dep-local-repo-replace-01: updated-go-mod-idmapper
+      params:
+        GO_MODS: go.mod
+        REPLACE_DIRECTIVES: |
+          dep-local-repo-replace-01:idmapper
+    - put: updated-go-mod-grootfs
+      params:
+        rebase: true
+        repository: bumped-repo
+  - do:
+    - task: groot-bump-dependencies-go-mod
+      file: ci/shared/tasks/bump-dependencies-go-mod/linux.yml
+      image: image
+      input_mapping:
+        repo: updated-go-mod-groot
+      params:
+        GO_MODS: go.mod
+    - put: updated-go-mod-groot
+      params:
+        rebase: true
+        repository: bumped-repo
+  - do:
+    - task: guardian-bump-dependencies-go-mod
+      file: ci/shared/tasks/bump-dependencies-go-mod/linux.yml
+      image: image
+      input_mapping:
+        repo: updated-go-mod-guardian
+        dep-local-repo-replace-01: updated-go-mod-garden
+        dep-local-repo-replace-02: updated-go-mod-idmapper
+        dep-local-repo-replace-03: updated-go-mod-grootfs
+      params:
+        GO_MODS: go.mod
+        REPLACE_DIRECTIVES: |
+          dep-local-repo-replace-01:garden
+          dep-local-repo-replace-02:idmapper
+          dep-local-repo-replace-03:grootfs
+    - put: updated-go-mod-guardian
+      params:
+        rebase: true
+        repository: bumped-repo
+  - do:
+    - task: garden-integration-tests-bump-dependencies-go-mod
+      file: ci/shared/tasks/bump-dependencies-go-mod/linux.yml
+      image: image
+      input_mapping:
+        repo: updated-go-mod-garden-integration-tests
+        dep-local-repo-replace-01: updated-go-mod-garden
+        dep-local-repo-replace-02: updated-go-mod-idmapper
+        dep-local-repo-replace-03: updated-go-mod-grootfs
+        dep-local-repo-replace-04: updated-go-mod-guardian
+      params:
+        GO_MODS: go.mod
+        REPLACE_DIRECTIVES: |
+          dep-local-repo-replace-01:garden
+          dep-local-repo-replace-02:idmapper
+          dep-local-repo-replace-03:grootfs
+          dep-local-repo-replace-04:guardian
+    - put: updated-go-mod-garden-integration-tests
+      params:
+        rebase: true
+        repository: bumped-repo
+  - do:
+    - task: garden-runc-release-bump-dependencies-go-mod
+      file: ci/shared/tasks/bump-dependencies-go-mod/linux.yml
+      image: image
+      input_mapping:
+        dep-local-repo-replace-01: idmapper
+        dep-local-repo-replace-02: grootfs
+      params:
+        GO_MODS: |
+          src/greenskeeper/go.mod
+          src/thresholder/go.mod
+    - put: repo
+      params:
+        rebase: true
+        repository: bumped-repo
+
+- name: bump-package-golang
+  on_failure: *ci-notification
+  plan:
+  - in_parallel:
+    - get: ci
+    - get: repo
+    - get: image
+    - get: golang-release-latest
+      trigger: true
+    - get: go-version
+      trigger: true
+
+  - task: bump-golang-package-name-linux
+    image: image
+    file: ci/shared/tasks/bump-golang-package-name/linux.yml
+    output_mapping:
+      bumped-repo: bumped-golang-package-name-linux
+    params:
+      PLATFORM: linux
+
+  - task: bump-golang-linux
+    file: ci/shared/tasks/bosh-vendor-package/linux.yml
+    image: image
+    input_mapping:
+      repo: bumped-golang-package-name-linux
+      package-release: golang-release-latest
+    output_mapping:
+      vendored-repo: modified-release-linux
+    params:
+      PACKAGE_NAME: golang-*-linux
+      AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+      AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+
+  - task: bump-golang-package-name-windows
+    image: image
+    file: ci/shared/tasks/bump-golang-package-name/linux.yml
+    input_mapping:
+      repo: modified-release-linux
+    output_mapping:
+      bumped-repo: bumped-golang-package-name-windows
+    params:
+      PLATFORM: windows
+
+  - task: bump-golang-windows
+    file: ci/shared/tasks/bosh-vendor-package/linux.yml
+    image: image
+    input_mapping:
+      repo: bumped-golang-package-name-windows
+      package-release: golang-release-latest
+    output_mapping:
+      vendored-repo: modified-release-windows
+    params:
+      PACKAGE_NAME: golang-*-windows
+      AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+      AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+
+  - put: repo
+    params:
+      rebase: true
+      repository: modified-release-windows
+
+- name: bump-bosh-blobs
+  on_failure: *ci-notification
+  serial: true
+  plan:
+  - in_parallel:
+      steps:
+      - get: ci
+      - get: repo
+      - get: image
+      - get: autoconf
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: automake
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: busybox
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: gperf
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: iptables
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: libmnl
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: libnftnl
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: libseccomp
+        params:
+          globs:
+          - libseccomp-*.tar.gz
+        trigger: true
+      - get: libtool
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: musl
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: pkg-config
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: tar
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: tini
+        trigger: true
+      - get: util-linux
+        params:
+          fetch_tags: true
+        trigger: true
+      - get: zlib
+        params:
+          globs: [ zlib-*.tar.gz ]
+        trigger: true
+
+  - do:
+    - task: bump-bosh-blob-autoconf
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: autoconf
+      params:
+        BOSH_BLOB_PATH: autoconf/autoconf-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-automake
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: automake
+      params:
+        BOSH_BLOB_PATH: automake/automake-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-busybox
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: busybox
+      params:
+        BOSH_BLOB_PATH: busybox/busybox-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+
+  - do:
+    - task: bump-bosh-blob-gperf
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: gperf
+      params:
+        BOSH_BLOB_PATH: gperf/gperf-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-iptables
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: iptables
+      params:
+        BOSH_BLOB_PATH: iptables/iptables-*.tar.xz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-libmnl
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: libmnl
+      params:
+        BOSH_BLOB_PATH: iptables/libmnl-*.tar.bz2
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-libnftnl
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: libnftnl
+      params:
+        BOSH_BLOB_PATH: iptables/libnftnl-*.tar.xz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-libseccomp
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: libseccomp
+      params:
+        BOSH_BLOB_PATH: libseccomp/libseccomp-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-libtool
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: libtool
+      params:
+        BOSH_BLOB_PATH: libtool/libtool-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-musl
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: musl
+      params:
+        BOSH_BLOB_PATH: musl/musl-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-pkg-config
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: pkg-config
+      params:
+        BOSH_BLOB_PATH: pkg-config/pkg-config-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+
+  - do:
+    - task: bump-bosh-blob-tar
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: tar
+      params:
+        BOSH_BLOB_PATH: tar/tar-*.tar.xz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-tini
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: tini
+      params:
+        BOSH_BLOB_PATH: tini/tini-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-util-linux
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: util-linux
+      params:
+        BOSH_BLOB_PATH: util-linux/util-linux-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+  - do:
+    - task: bump-bosh-blob-zlib
+      image: image
+      file: ci/shared/tasks/bump-bosh-blobs/linux.yml
+      input_mapping:
+        blob: zlib
+      params:
+        BOSH_BLOB_PATH: zlib/zlib-*.tar.gz
+        AWS_ACCESS_KEY_ID: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/access-key-id))
+        AWS_SECRET_ACCESS_KEY: ((aws-s3-590183821845-wg-ari-bosh-blob-buckets/secret-access-key))
+    - put: repo
+      params:
+       rebase: true
+       repository: bumped-repo
+
+- name: sync-dot-github-dir
+  serial: true
+  plan:
+  - in_parallel:
+      steps:
+      - get: ci
+      - get: image
+      - get: repo
+#@ for repo in helpers.packages_with_a_git_repo(data.values.internal_repos):
+      - get: #@ "{}-repo".format(repo.name)
+#@ end
+      - get: shared-templates
+        trigger: true
+  - do:
+    - task: sync-dot-github-dir-garden-runc-release
+      file: ci/shared/tasks/sync-dot-github-dir/linux.yml
+      image: image
+      params:
+        PARENT_TEMPLATE_DIR: garden-runc-release
+    - put: repo
+      params:
+       rebase: true
+       repository: synced-repo
+#@ for repo in helpers.packages_with_a_git_repo(data.values.internal_repos):
+  - do:
+    - task: #@ "sync-dot-github-dir-{}".format(repo.name)
+      file: ci/shared/tasks/sync-dot-github-dir/linux.yml
+      image: image
+      input_mapping:
+        repo: #@ "{}-repo".format(repo.name)
+      params:
+        PARENT_TEMPLATE_DIR: garden-runc-release
+    - put: #@ "{}-repo".format(repo.name)
+      params:
+       rebase: true
+       repository: synced-repo
+#@ end
+
+- name: sync-readme
+  serial: true
+  plan:
+  - in_parallel:
+      steps:
+      - get: ci
+      - get: image
+      - get: weekly
+        trigger: true
+      - get: repo
+#@ for repo in helpers.packages_with_a_git_repo(data.values.internal_repos):
+      - get: #@ "{}-repo".format(repo.name)
+#@ end
+        trigger: false
+      - get: readme
+        trigger: false
+  - do:
+    - task: sync-readme
+      file: ci/shared/tasks/sync-readme/linux.yml
+      image: image
+    - put: repo-synced
+      params:
+       rebase: true
+       repository: synced-repo
+#@ for repo in helpers.packages_with_a_git_repo(data.values.internal_repos):
+  - do:
+    - task: #@ "sync-readme-{}".format(repo.name)
+      file: ci/shared/tasks/sync-readme/linux.yml
+      image: image
+      input_mapping:
+        repo: #@ "{}-repo".format(repo.name)
+    - put: #@ "{}-repo".format(repo.name)
+      params:
+       rebase: true
+       repository: synced-repo
+#@ end
+
+
+- name: template-tests
+  serial: true
+  plan:
+  - in_parallel:
+    - get: ci
+    - get: repo
+      trigger: true
+    - get: image
+  - task: template-tests
+    image: image
+    file: ci/shared/tasks/run-tests-templates/linux.yml
+    timeout: 30m
+
+- name: unit-and-integration-tests
+  serial: true
+  plan:
+  - in_parallel:
+    - get: ci
+    - get: repo
+      trigger: true
+    - get: image
+    - get: package-release
+      resource: golang-release-latest
+    - get: garden-runc-release-rootfs
+      params:
+        format: rootfs
+    - get: garden-runc-release-fuse-rootfs
+      params:
+        format: rootfs
+  - task: determine-image-tag
+    image: image
+    file: ci/shared/tasks/determine-image-tag/linux.yml
+  - load_var: image_tag
+    file: determined-image-tag/tag
+  - in_parallel:
+    - task: build-binaries
+      file: ci/shared/tasks/build-binaries/linux.yml
+      params:
+        DEFAULT_PARAMS: "ci/garden-runc-release/default-params/build-binaries/linux.yml"
+      vars:
+        image_repository: cloudfoundry/tas-runtime-build
+        image_password: ((gcp-arp-artifact-registry-service-account-token))
+        image_tag: ((.:image_tag))
+  - put: windows-worker-lock
+    params:
+      acquire: true
+  - task: start-windows-worker
+    image: image
+    file: ci/shared/tasks/bosh-start/linux.yml
+    params:
+      DEPLOYMENT: windows-worker
+      INSTANCE_GROUP: windows-worker
+      BOSH_CREDS: ((bosh-concourse-credentials/env_vars))
+  - in_parallel:
+#@ for repo in data.values.internal_repos:
+    - task: #@ "{}".format(repo.name)
+      privileged: #@ helpers.privileged(repo)
+      file: ci/shared/tasks/run-bin-test/linux.yml
+      vars:
+        image_repository: cloudfoundry/tas-runtime-build
+        image_password: ((gcp-arp-artifact-registry-service-account-token))
+        image_tag: ((.:image_tag))
+      input_mapping:
+        input-01: garden-runc-release-rootfs
+        input-02: garden-runc-release-fuse-rootfs
+      params:
+        ENVS: |
+          DOCKER_REGISTRY_USERNAME=((dockerhub-appruntimeplatform-username))
+          DOCKER_REGISTRY_PASSWORD=((dockerhub-appruntimeplatform-password))
+          GARDEN_TEST_ROOTFS=$PWD/input-01/rootfs
+          GARDEN_FUSE_TEST_ROOTFS=$PWD/input-02/rootfs
+        DIR: #@ "src/{}".format(repo.name)
+    - task: #@ "{}-cgroupsv2".format(repo.name)
+      tags: [ diego-cgroupsv2 ]
+      privileged: #@ helpers.privileged(repo)
+      file: ci/shared/tasks/run-bin-test/linux.yml
+      vars:
+        image_repository: cloudfoundry/tas-runtime-build
+        image_password: ((gcp-arp-artifact-registry-service-account-token))
+        image_tag: ((.:image_tag))
+      input_mapping:
+        input-01: garden-runc-release-rootfs
+        input-02: garden-runc-release-fuse-rootfs
+      params:
+        ENVS: |
+          DOCKER_REGISTRY_USERNAME=((dockerhub-appruntimeplatform-username))
+          DOCKER_REGISTRY_PASSWORD=((dockerhub-appruntimeplatform-password))
+          GARDEN_TEST_ROOTFS=$PWD/input-01/rootfs
+          GARDEN_FUSE_TEST_ROOTFS=$PWD/input-02/rootfs
+        DIR: #@ "src/{}".format(repo.name)
+#@ if helpers.on_windows(repo):
+    - task: #@ "{}-windows".format(repo.name)
+      file: ci/shared/tasks/run-bin-test/windows.yml
+      privileged: #@ helpers.privileged(repo)
+      params:
+        DIR: #@ "src/{}".format(repo.name)
+#@ end
+#@ end
+  ensure:
+    task: stop-windows-worker
+    image: image
+    file: ci/shared/tasks/bosh-stop/linux.yml
+    params:
+      DEPLOYMENT: windows-worker
+      INSTANCE_GROUP: windows-worker
+      BOSH_CREDS: ((bosh-concourse-credentials/env_vars))
+    ensure:
+      put: windows-worker-lock
+      inputs: detect
+      params:
+        release: windows-worker-lock
+ 
