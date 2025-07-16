@@ -5,9 +5,7 @@
 groups:
 - name: release
   jobs:
-  - template-tests
   - unit-and-integration-tests
-  - lint-repo
 
 
 
@@ -103,74 +101,13 @@ resources:
     branch: main
     uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
 
-- name: cf-deployment
-  type: git
-  icon: source-branch
-  source:
-    branch: main
-    uri: https://github.com/cloudfoundry/cf-deployment.git
 
-- name: garden-ci-artifacts-release
-  type: git
-  icon: source-branch
-  source:
-    branch: develop
-    uri: https://github.com/cloudfoundry/garden-ci-artifacts-release.git
-
-- name: winc-release
-  type: git
-  icon: source-branch
-  source:
-    branch: release
-    uri: https://github.com/cloudfoundry/winc-release.git
-
-- name: windows-utilities-release
-  type: git
-  icon: source-branch
-  source:
-    branch: master
-    uri: https://github.com/cloudfoundry/windows-utilities-release.git
-
-- name: cf-deployment-concourse-tasks
   type: git
   icon: source-branch
   source:
     branch: main
     uri: https://github.com/cloudfoundry/cf-deployment-concourse-tasks.git
 
-- name: cf-acceptance-tests
-  type: git
-  icon: source-branch
-  source:
-    branch: release-candidate
-    uri: https://github.com/cloudfoundry/cf-acceptance-tests
-
-- name: updated-go-mod-garden
-  type: git
-  icon: source-branch
-  source:
-    uri: git@github.com:cloudfoundry/garden.git
-    branch: main
-    private_key: ((github-appruntimeplatform-bot/private-key))
-
-
-- name: updated-go-mod-guardian
-  type: git
-  icon: source-branch
-  source:
-    uri: git@github.com:cloudfoundry/guardian.git
-    branch: cgroupsv2-fix
-    private_key: ((github-appruntimeplatform-bot/private-key))
-
-- name: updated-go-mod-idmapper
-  type: git
-  icon: source-branch
-  source:
-    uri: git@github.com:cloudfoundry/idmapper.git
-    branch: main
-    private_key: ((github-appruntimeplatform-bot/private-key))
-
-- name: updated-go-mod-grootfs
   type: git
   icon: source-branch
   source:
@@ -178,39 +115,7 @@ resources:
     branch: main
     private_key: ((github-appruntimeplatform-bot/private-key))
 
-- name: updated-go-mod-groot
-  type: git
-  icon: source-branch
-  source:
-    uri: git@github.com:cloudfoundry/groot.git
-    branch: main
-    private_key: ((github-appruntimeplatform-bot/private-key))
 
-- name: updated-go-mod-dontpanic
-  type: git
-  icon: source-branch
-  source:
-    uri: git@github.com:cloudfoundry/dontpanic.git
-    branch: main
-    private_key: ((github-appruntimeplatform-bot/private-key))
-
-- name: updated-go-mod-garden-integration-tests
-  type: git
-  icon: source-branch
-  source:
-    uri: git@github.com:cloudfoundry/garden-integration-tests.git
-    branch: main
-    private_key: ((github-appruntimeplatform-bot/private-key))
-
-- name: updated-go-mod-garden-performance-acceptance-tests
-  type: git
-  icon: source-branch
-  source:
-    uri: git@github.com:cloudfoundry/garden-performance-acceptance-tests.git
-    branch: main
-    private_key: ((github-appruntimeplatform-bot/private-key))
-
-- name: go-version
   type: git
   icon: source-branch
   source:
@@ -221,49 +126,7 @@ resources:
 
 
 
-- name: slack-ci-channel
-  type: slack-notification
-  source:
-    url: ((slack-ci-channel/webhook))
 
-- name: env
-  type: git
-  icon: sheep
-  source:
-    branch: main
-    uri: git@github.com:cloudfoundry/app-runtime-platform-envs
-    private_key: ((github-appruntimeplatform-bot/private-key))
-    paths:
-      - bbl-garden-env
-
-- name: github-release
-  type: github-release
-  icon: github
-  source:
-    access_token: ((github-appruntimeplatform-bot/access-token))
-    repository: garden-runc-release
-    owner: cloudfoundry
-
-- name: draft-github-release
-  type: github-release
-  icon: github
-  source:
-    access_token: ((github-appruntimeplatform-bot/access-token))
-    drafts: true
-    repository: garden-runc-release
-    owner: cloudfoundry
-
-- name: shared-templates
-  type: git
-  icon: source-branch
-  source:
-    branch: main
-    uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
-    paths:
-      - shared/github
-      - garden-runc-release/github
-
-- name: readme
   type: git
   icon: source-branch
   source:
@@ -284,25 +147,7 @@ resources:
     private_key: ((github-appruntimeplatform-bot/private-key))
 #@ end
 
-- name: version
-  type: semver
-  icon: counter
-  source:
-    driver: gcs
-    bucket: ci-release-versions
-    key: garden-runc-release/version
-    json_key: ((gcp-wg-arp-oss-service-account/config-json))
 
-- name: windows-worker-lock
-  type: pool
-  icon: cloud-lock
-  source:
-    branch: main
-    pool: windows-worker-lock
-    private_key: ((github-appruntimeplatform-bot/private-key))
-    uri: git@github.com:cloudfoundry/runtime-ci-pools.git
-
-- name: garden-runc-release-env-lock
   type: fork-pool
   icon: cloud-lock
   source:
@@ -339,134 +184,8 @@ resources:
     password: ((gcp-arp-artifact-registry-service-account-token))
     tag: latest
 
-- name: artifacts-bucket-gdn
-  type: gcs
-  icon: bitbucket
-  source:
-    bucket: gdn-linux-release
-    json_key: ((gcp-wg-arp-oss-service-account/config-json))
-    versioned_file: gdn-linux-amd64
 
-- name: artifacts-bucket-gdn-arm64
-  type: gcs
-  icon: bitbucket
-  source:
-    versioned_file: gdn-linux-arm64
-    bucket: gdn-linux-release
-    json_key: ((gcp-wg-arp-oss-service-account/config-json))
 
-- name: autoconf
-  type: git
-  icon: tag-outline
-  source:
-    branch: master
-    uri: https://github.com/autotools-mirror/autoconf
-    tag_filter: v*
-
-- name: automake
-  type: git
-  icon: tag-outline
-  source:
-    branch: master
-    uri: https://github.com/autotools-mirror/automake
-    tag_filter: v*
-
-- name: busybox
-  type: git
-  icon: tag-outline
-  source:
-    branch: 1_36_stable
-    uri: https://git.busybox.net/busybox
-
-- name: gperf
-  type: git
-  icon: tag-outline
-  source:
-    branch: master
-    uri: https://github.com/jwinarske/gperf
-    tag_filter: v*
-
-- name: iptables
-  type: git
-  icon: tag-outline
-  source:
-    branch: master
-    uri: https://git.netfilter.org/iptables
-    tag_filter: v*
-
-- name: libmnl
-  type: git
-  icon: tag-outline
-  source:
-    branch: master
-    uri: https://git.netfilter.org/libmnl
-    tag_filter: libmnl*
-
-- name: libnftnl
-  type: git
-  icon: tag-outline
-  source:
-    branch: master
-    uri: https://git.netfilter.org/libnftnl
-    tag_filter: libnftnl-*
-
-- name: libseccomp
-  type: github-release
-  icon: github
-  source:
-    access_token: ((github-appruntimeplatform-bot/access-token))
-    owner: seccomp
-    repository: libseccomp
-
-- name: libtool
-  type: git
-  icon: tag-outline
-  source:
-    branch: debian/latest
-    uri: https://salsa.debian.org/mckinstry/libtool.git
-    tag_filter: debian/*
-
-- name: musl
-  type: git
-  icon: tag-outline
-  source:
-    branch: master
-    uri: https://git.musl-libc.org/git/musl
-    tag_filter: v*
-
-- name: pkg-config
-  type: git
-  icon: tag-outline
-  source:
-    branch: master
-    uri: https://gitlab.freedesktop.org/pkg-config/pkg-config.git
-    tag_filter: pkg-config-*
-
-- name: tar
-  type: git
-  icon: tag-outline
-  source:
-    branch: master
-    uri: https://git.savannah.gnu.org/git/tar.git
-    tag_filter: v*
-
-- name: tini
-  type: github-release
-  icon: github
-  source:
-    access_token: ((github-appruntimeplatform-bot/access-token))
-    owner: krallin
-    repository: tini
-
-- name: util-linux
-  type: git
-  icon: tag-outline
-  source:
-    branch: stable/v2.39
-    uri: https://github.com/util-linux/util-linux.git
-    tag_regex: ^v([0-9]|[1-9][0-9]*)\.([0-9]|[1-9][0-9]*)\.([0-9]|[1-9][0-9]*)$
-
-- name: zlib
   type: github-release
   icon: github
   source:
