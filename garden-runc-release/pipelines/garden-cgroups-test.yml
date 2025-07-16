@@ -153,12 +153,6 @@ resources:
 
 
 
-  type: github-release
-  icon: github
-  source:
-    access_token: ((github-appruntimeplatform-bot/access-token))
-    owner: madler
-    repository: zlib
 
 #! Define-Jobs
 
