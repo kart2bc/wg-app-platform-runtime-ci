@@ -169,6 +169,8 @@ jobs:
         image_repository: cloudfoundry/tas-runtime-build
         image_password: ((gcp-arp-artifact-registry-service-account-token))
         image_tag: ((.:image_tag))
+  - in_parallel:
+#@ for repo in data.values.internal_repos:
     - task: #@ "{}-cgroupsv2".format(repo.name)
       tags: [ diego-cgroupsv2 ]
       privileged: #@ helpers.privileged(repo)
@@ -188,4 +190,5 @@ jobs:
           GARDEN_FUSE_TEST_ROOTFS=$PWD/input-02/rootfs
         DIR: #@ "src/{}".format(repo.name)
 #@ end
+
  
