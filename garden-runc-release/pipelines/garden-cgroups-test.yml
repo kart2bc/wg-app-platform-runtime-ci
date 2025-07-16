@@ -480,18 +480,7 @@ resources:
 
 
 
-- name: template-tests
-  serial: true
-  plan:
-  - in_parallel:
-    - get: ci
-    - get: repo
-      trigger: true
-    - get: image
-  - task: template-tests
-    image: image
-    file: ci/shared/tasks/run-tests-templates/linux.yml
-    timeout: 30m
+jobs:
 
 - name: unit-and-integration-tests
   serial: true
