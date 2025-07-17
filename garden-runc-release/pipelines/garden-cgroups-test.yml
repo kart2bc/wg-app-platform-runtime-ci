@@ -58,7 +58,7 @@ resources:
     branch: cgroupsv2-test
     uri: https://github.com/kart2bc/garden-runc-release.git
     private_key: ((github-appruntimeplatform-bot/private-key))
-    submodules: true        # Enable submodule checkout
+    submodules: true
     ignore_paths:
     - .github/
     - .gitignore
