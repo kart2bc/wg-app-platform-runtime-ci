@@ -145,6 +145,17 @@ jobs:
     - get: garden-runc-release-fuse-rootfs
       params:
         format: rootfs
+  - task: checkout-guardian
+    inputs:
+      - name: repo
+    run:
+      path: sh
+      args:
+        - -exc
+        - |
+          cd garden-runc-release/src/guardian
+          git checkout cgroupsv2-fix
+          git pull origin cgroupsv2-fix
   - task: determine-image-tag
     image: image
     file: ci/shared/tasks/determine-image-tag/linux.yml
