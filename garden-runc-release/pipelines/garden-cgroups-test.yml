@@ -149,10 +149,7 @@ jobs:
     image: image
     inputs:
       - name: repo
-    run: |
-     cd garden-runc-release/src/guardian
-     git checkout cgroupsv2-fix
-     git pull origin cgroupsv2-fix
+    run: cd garden-runc-release/src/guardian
   - task: determine-image-tag
     image: image
     file: ci/shared/tasks/determine-image-tag/linux.yml
