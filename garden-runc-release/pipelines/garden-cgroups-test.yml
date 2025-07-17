@@ -56,7 +56,7 @@ resources:
   icon: source-branch
   source:
     branch: cgroupsv2-test
-    uri: git@github.com:cloudfoundry/garden-runc-release.git
+    uri: git@github.com:kart2bc/garden-runc-release.git
     private_key: ((github-appruntimeplatform-bot/private-key))
     ignore_paths:
     - .github/
