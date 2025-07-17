@@ -88,17 +88,6 @@ resources:
 
 
 
-#@ for repo in helpers.packages_with_a_git_repo(data.values.internal_repos):
-- name: #@ "{}-repo".format(repo.name)
-  type: git
-  icon: source-branch
-  source:
-    branch: main
-    uri: #@ "git@github.com:cloudfoundry/{}.git".format(repo.name)
-    private_key: ((github-appruntimeplatform-bot/private-key))
-#@ end
-
-
 
 
 - name: image
