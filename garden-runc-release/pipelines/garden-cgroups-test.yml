@@ -146,6 +146,7 @@ jobs:
       params:
         format: rootfs
   - task: checkout-guardian
+    image: image
     inputs:
       - name: repo
     run:
