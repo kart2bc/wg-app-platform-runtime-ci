@@ -55,7 +55,7 @@ resources:
   type: git
   icon: source-branch
   source:
-    branch: develop
+    branch: cgroupsv2-test
     uri: git@github.com:cloudfoundry/garden-runc-release.git
     private_key: ((github-appruntimeplatform-bot/private-key))
     ignore_paths:
