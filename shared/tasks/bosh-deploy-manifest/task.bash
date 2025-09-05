@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eEu
+set -exEu
 set -o pipefail
 
 
