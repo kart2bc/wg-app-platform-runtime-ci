@@ -34,9 +34,9 @@ params:
     -r
     --fail-on-pending
     --randomize-all
-    --nodes=7
+    --nodes=3
     --race
-    --timeout 1h
+    --timeout 2h
     --flake-attempts 2
   FUNCTIONS:
   RUN_AS: root
