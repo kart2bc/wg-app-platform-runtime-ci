@@ -1,0 +1,19 @@
+resources:
+  # 1️⃣ The semver resource — stores and bumps the version file in Git
+  - name: version
+    type: semver
+    source:
+      driver: git
+      uri: git@github.com:cloudfoundry/diego-release.git
+      branch: main
+      file: version
+      private_key: ((github-appruntimeplatform-bot/private-key))
+
+jobs:
+  # 2️⃣ The bump job — increments the minor version
+  - name: bump-minor
+    plan:
+      - get: version
+        params: { bump: minor }   # bump "1.4.2" → "1.5.0"
+      - put: version
+        params: { file: version/number }  # write back to repo
