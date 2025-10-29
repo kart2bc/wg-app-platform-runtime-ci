@@ -28,9 +28,8 @@ resources:
     type: git
     icon: source-branch
     source:
-      branch: develop
-      uri: git@github.com:cloudfoundry/diego-release.git
-      private_key: ((github-appruntimeplatform-bot/private-key))
+      branch: inigo-metron-test
+      uri: https://github.com/kart2bc/diego-release.git
       ignore_paths:
       - .github/
       - .gitignore
