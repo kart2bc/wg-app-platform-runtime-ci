@@ -16,6 +16,14 @@ resources:
       branch: main
       uri: https://github.com/cloudfoundry/wg-app-platform-runtime-ci
 
+
+  - name: golang-release-latest
+    type: git
+    icon: tag-outline
+    source:
+      tag_filter: v*
+      uri: https://github.com/bosh-packages/golang-release.git
+
   - name: repo
     type: git
     icon: source-branch
