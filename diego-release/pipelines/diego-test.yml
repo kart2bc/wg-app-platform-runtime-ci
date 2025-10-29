@@ -191,7 +191,6 @@ jobs:
 
   - name: unit-and-integration-tests
     serial: true
-    serial_groups: [ diego-windows-worker ]
     plan:
     - in_parallel:
       - get: ci
