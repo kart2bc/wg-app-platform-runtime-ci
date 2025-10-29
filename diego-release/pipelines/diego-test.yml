@@ -32,16 +32,6 @@ groups:
     - README.md
     - docs/
 
-#@ for repo in data.values.internal_repos:
-- name: #@ "{}-repo".format(repo.name)
-  type: git
-  icon: source-branch
-  source:
-    branch: main
-    uri: #@ "git@github.com:cloudfoundry/{}.git".format(repo.name)
-    private_key: ((github-appruntimeplatform-bot/private-key))
-#@ end
-
 - name: image
   type: registry-image
   icon: docker
