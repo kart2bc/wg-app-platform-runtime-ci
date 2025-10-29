@@ -64,7 +64,7 @@ resources:
       tag: latest
       username: _json_key
       password: ((gcp-arp-artifact-registry-service-account-token))
-
+jobs:
   #@ for db in data.values.inigo_db_flavors:
   - name: #@ "inigo-{}-linux".format(db.value)
     serial: true
