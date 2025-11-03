@@ -28,7 +28,7 @@ resources:
     type: git
     icon: source-branch
     source:
-      branch: inigo-metron-test
+      branch: locket-timeout
       uri: https://github.com/kart2bc/diego-release.git
       ignore_paths:
       - .github/
