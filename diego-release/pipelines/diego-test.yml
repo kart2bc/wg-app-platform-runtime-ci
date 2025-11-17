@@ -198,6 +198,7 @@ jobs:
 
   - name: unit-and-integration-tests
     serial: true
+    serial_groups: [ diego-windows-worker ]
     plan:
     - in_parallel:
       - get: ci
@@ -225,49 +226,87 @@ jobs:
         - load_var: #@ "image_tag_{}".format(db.image.replace("-", "_").replace(".", "_"))
           file: #@ "determined-image-tag-{}/tag".format(db.image)
   #@ end
-    - in_parallel:
-      - task: build-binaries-for-linux
-        file: ci/shared/tasks/build-binaries/linux.yml
-        output_mapping:
-          built-binaries: linux-built-binaries
-        image: image
-        params:
-          DEFAULT_PARAMS: "ci/diego-release/default-params/build-binaries/linux.yml"
-        vars:
-          image_repository: cloudfoundry/tas-runtime-build
-          image_password: ((gcp-arp-artifact-registry-service-account-token))
-          image_tag: ((.:image_tag))
-    - in_parallel:
-  #@ for package in helpers.packages_with_configure_db(data.values.internal_repos):
-  #@ for db in data.values.db_flavors:
-      - task: #@ "{}-{}-linux".format(package.name,db.image)
-        file: ci/shared/tasks/run-bin-test/linux.yml
-        privileged: #@ helpers.privileged(package)
-        attempts: 3
-        input_mapping:
-          built-binaries: linux-built-binaries
-        vars:
-          image_repository: #@ "cloudfoundry/tas-runtime-{}".format(db.image)
-          image_password: ((gcp-arp-artifact-registry-service-account-token))
-          image_tag: #@ "((.:image_tag_{}))".format(db.image.replace("-", "_").replace(".", "_"))
-        params:
-          DIR: #@ "src/code.cloudfoundry.org/{}".format(package.name)
-          DB: #@ db.value
-          DEFAULT_PARAMS: "ci/diego-release/default-params/run-bin-test/linux.yml"
-  #@ end
-  #@ end
-    - in_parallel:
-  #@ for package in helpers.packages_without_configure_db(data.values.internal_repos):
-      - task: #@ "{}-linux".format(package.name)
-        file: ci/shared/tasks/run-bin-test/linux.yml
-        privileged: #@ helpers.privileged(package)
-        attempts: 3
-        input_mapping:
-          built-binaries: linux-built-binaries
-        vars:
-          image_repository: cloudfoundry/tas-runtime-build
-          image_password: ((gcp-arp-artifact-registry-service-account-token))
-          image_tag: ((.:image_tag))
-        params:
-          DIR: #@ "src/code.cloudfoundry.org/{}".format(package.name)
-  #@ end
+  - task: start-diego-windows-workers
+    image: image
+    file: ci/shared/tasks/bosh-start/linux.yml
+    params:
+      DEPLOYMENT: diego-worker-windows
+      INSTANCE_GROUP: windows-worker
+      BOSH_CREDS: ((bosh-concourse-credentials/env_vars))
+  - in_parallel:
+  - task: build-binaries-for-linux
+    file: ci/shared/tasks/build-binaries/linux.yml
+    output_mapping:
+      built-binaries: linux-built-binaries
+    image: image
+    params:
+      DEFAULT_PARAMS: "ci/diego-release/default-params/build-binaries/linux.yml"
+    vars:
+      image_repository: cloudfoundry/tas-runtime-build
+      image_password: ((gcp-arp-artifact-registry-service-account-token))
+      image_tag: ((.:image_tag))
+  - task: build-binaries-for-windows
+    tags: [ diego-windows ]
+    file: ci/shared/tasks/build-binaries/windows.yml
+    output_mapping:
+      built-binaries: windows-built-binaries
+    params:
+      DEFAULT_PARAMS: "ci/diego-release/default-params/build-binaries/windows.yml"
+  - in_parallel:
+#@ for package in helpers.packages_with_configure_db(data.values.internal_repos):
+#@ for db in data.values.db_flavors:
+    - task: #@ "{}-{}-linux".format(package.name,db.image)
+      file: ci/shared/tasks/run-bin-test/linux.yml
+      privileged: #@ helpers.privileged(package)
+      attempts: 3
+      input_mapping:
+        built-binaries: linux-built-binaries
+      vars:
+        image_repository: #@ "cloudfoundry/tas-runtime-{}".format(db.image)
+        image_password: ((gcp-arp-artifact-registry-service-account-token))
+        image_tag: #@ "((.:image_tag_{}))".format(db.image.replace("-", "_").replace(".", "_"))
+      params:
+        DIR: #@ "src/code.cloudfoundry.org/{}".format(package.name)
+        DB: #@ db.value
+        DEFAULT_PARAMS: "ci/diego-release/default-params/run-bin-test/linux.yml"
+#@ end
+#@ if helpers.on_windows(package):
+    - task: #@ "{}-mysql-windows".format(package.name)
+      file: ci/shared/tasks/run-bin-test/windows.yml
+      tags: [ diego-windows ]
+      privileged: true #! all windows test with DB required elavated
+      attempts: 3
+      input_mapping:
+        built-binaries: windows-built-binaries
+      params:
+        DIR: #@ "src/code.cloudfoundry.org/{}".format(package.name)
+        DB: mysql
+        DEFAULT_PARAMS: "ci/diego-release/default-params/run-bin-test/windows.yml"
+#@ end
+#@ end
+  - in_parallel:
+#@ for package in helpers.packages_without_configure_db(data.values.internal_repos):
+    - task: #@ "{}-linux".format(package.name)
+      file: ci/shared/tasks/run-bin-test/linux.yml
+      privileged: #@ helpers.privileged(package)
+      attempts: 3
+      input_mapping:
+        built-binaries: linux-built-binaries
+      vars:
+        image_repository: cloudfoundry/tas-runtime-build
+        image_password: ((gcp-arp-artifact-registry-service-account-token))
+        image_tag: ((.:image_tag))
+      params:
+        DIR: #@ "src/code.cloudfoundry.org/{}".format(package.name)
+#@ if helpers.on_windows(package):
+    - task: #@ "{}-windows".format(package.name)
+      file: ci/shared/tasks/run-bin-test/windows.yml
+      tags: [ diego-windows ]
+      privileged: true #! for windows test 
+      attempts: 3
+      input_mapping:
+        built-binaries: windows-built-binaries
+      params:
+        DIR: #@ "src/code.cloudfoundry.org/{}".format(package.name)
+#@ end
+#@ end
